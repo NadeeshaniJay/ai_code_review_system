@@ -18,7 +18,8 @@ def show_session_summary():
     print("-" * 40)
     print(f"Issues Found: {len(session_memory['issues'])}")
     for i, issue in enumerate(session_memory["issues"], 1):
-        print(f"{i}. [Line {issue['line']}] {issue['description']}")
+        desc = issue.get("description") or issue.get("issue") or "No description provided"
+        print(f"{i}. [Line {issue.get('line', '?')}] {desc}")
 
     print(f"\nUser Feedback:")
     for i, fb in enumerate(session_memory["feedback"], 1):

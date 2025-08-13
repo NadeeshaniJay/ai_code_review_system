@@ -1,41 +1,37 @@
 import json
 from llm.gemini_client import init_gemini
+from memory.session_memory import remember_issue
 
-def run_security_agent(code, api_key):
-    print("\n🔍 Running Security Agent...")
+def run_security_agent(code, api_key, context=None):
+    print("🔍 Running Security Agent...")
 
-    gemini = init_gemini(api_key)
-
+    gemini = init_gemini()
     try:
         with open("prompts/security_prompt.txt", "r") as f:
             prompt_template = f.read()
 
     except FileNotFoundError:
         print("❌ Missing prompt file: prompts/security_prompt.txt")
-        return []
+        return {"issues": []}
 
-    prompt = f"{prompt_template}\n\nSOURCE CODE:\n{code}"
+    context_str = json.dumps(context, indent=2) if context else "{}"
+    prompt = f"{prompt_template}\n\nSOURCE CODE:\n{code}\n\nCONTEXT:\n{context_str}"
 
     try:
         response = gemini.generate_content(prompt)
-    except Exception as e:
-        print("❌ Gemini API call failed:", e)
-        return {}
-
-    try:
-        raw_output = response.text.strip()
-        json_str = raw_output.split("```json")[-1].split("```")[0].strip() if "```json" in raw_output else raw_output
+        json_str = response.text.strip().split("```json")[-1].split("```")[0].strip() if "```json" in response.text else response.text
         result = json.loads(json_str)
     except Exception as e:
-        print("❌ Failed to parse Security Agent output:", e)
-        print("📝 Raw output:\n", response.text)
-        return {}
-
-    # Show results
-    print(f"✅ Total Security Issues Found: {len(result.get('issues', []))}")
-
-    for issue in result.get("issues", []):
-        print(f"🔴 Line {issue['line']}: {issue['issue']} ➜ {issue['suggestion']}")
-        issue["severity"] = "high"  if "security" in issue["issue"].lower() else "medium"
-        issue["confidence"] = 0.9  # Default confidence for LLM suggestions
+        print("❌ Gemini API call failed:", e)
+        print("Raw output:\n", response.text)
+        return {"issues": []}
+    
+    issues = result.get("issues", [])
+    for issue in issues:
+        issue.setdefault("explanation", "No specific explanation provided by the model.")
+        issue.setdefault("severity", "medium")
+        issue.setdefault("confidence", 0.9)
+        issue.setdefault("priority", 0.8 if issue["severity"] == "high" else 0.6)
+        remember_issue(issue)
+    print(f"✅ Security Agent completed - Found {len(issues)} issues.")
     return result

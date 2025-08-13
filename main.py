@@ -11,9 +11,10 @@ from utils.context_analyzer import analyze_project_context
 from dotenv import load_dotenv
 
 
-def format_initial_analysis_report(quality_results, static_results, merged_issues, code_path):
+def format_initial_analysis_report(quality_results, security_results, static_results, merged_issues, code_path):
     score = quality_results.get("score", 0)
-    ai_issues = quality_results.get("issues", [])
+    quality_issues = quality_results.get("issues", [])
+    security_issues = security_results.get("issues", [])
     static_issues = static_results
 
     total_issues = len(merged_issues)
@@ -169,14 +170,16 @@ def main():
     quality_results = run_quality_agent(code, api_key, context)
     score = quality_results.get("score", 0)
 
+    security_results = run_security_agent(code, api_key, context)
+
     with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as temp_file:
         temp_file.write(code)
         temp_path = temp_file.name
     static_results = run_static_analysis(temp_path)
     os.remove(temp_path)
 
-    merged_issues = compare_issues(quality_results, static_results)
-    report = format_initial_analysis_report(quality_results, static_results, merged_issues, code_path)
+    merged_issues = compare_issues(quality_results, security_results, static_results)
+    report = format_initial_analysis_report(quality_results, security_results, static_results, merged_issues, code_path)
     print(report)
 
     answer = input("\n🤖 Apply fixes and optimize code iteratively? (y/N): ").strip().lower()

@@ -6,7 +6,7 @@ from typing import TypedDict, List, Literal
 from langgraph.graph import StateGraph
 
 from agents.quality_agent import run_quality_agent
-
+from agents.security_agent import run_security_agent
 from agents.static_analysis_agent import run_static_analysis
 from agents.error_comparator_agent import compare_issues
 from agents.critic_agent import run_critic_agent
@@ -71,6 +71,8 @@ def build_langgraph_loop():
         # Step 1: Analyze code
         quality_results = run_quality_agent(code, api_key, context)
 
+        security_results = run_security_agent(code, api_key, context)
+
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w") as temp_file:
             temp_file.write(code)
             temp_path = temp_file.name
@@ -78,7 +80,7 @@ def build_langgraph_loop():
         os.remove(temp_path)
 
         # Merge and refine issues
-        merged_issues = compare_issues(quality_results, static_results)
+        merged_issues = compare_issues(quality_results, security_results, static_results)
         refined_issues = run_critic_agent(code, merged_issues, api_key)
 
         # Prioritize issues based on feedback

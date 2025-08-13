@@ -4,7 +4,6 @@ import tempfile
 from typing import Dict, List, Any, Optional
 import logging
 from dataclasses import dataclass, asdict
-
 from agents.quality_agent import run_quality_agent
 from agents.static_analysis_agent import run_static_analysis
 from agents.error_comparator_agent import compare_issues
@@ -20,7 +19,6 @@ from utils.context_analyzer import analyze_project_context
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class AnalysisConfig:
     """Configuration for analysis parameters."""
@@ -29,7 +27,6 @@ class AnalysisConfig:
     apply_optimizations: bool = True
     interactive_mode: bool = True
     save_intermediate_results: bool = True
-
 
 @dataclass
 class AnalysisResults:
@@ -41,7 +38,6 @@ class AnalysisResults:
     iterations_performed: int
     final_code: str
     analysis_summary: Dict[str, Any]
-
 
 class EnhancedControlAgent:
     """Enhanced control agent with better flow management and configuration."""
@@ -144,6 +140,10 @@ class EnhancedControlAgent:
         quality_results = run_quality_agent(code, api_key, context)
         quality_score = quality_results.get("score", 0)
 
+        # Security analysis
+        print("  🔒 Running Security Analysis...")
+        security_results = run_security_agent(code, api_key, context)
+
         # Static analysis
         print("  🔧 Running Static Analysis...")
         with tempfile.NamedTemporaryFile(suffix=f".{language.lower()}", delete=False, mode="w") as temp_file:
@@ -157,7 +157,7 @@ class EnhancedControlAgent:
 
         # Merge and refine issues
         print("  🧮 Comparing and Merging Issues...")
-        merged_issues = compare_issues(quality_results, static_results)
+        merged_issues = compare_issues(quality_results, security_results, static_results)
 
         print("  🤔 Running Critical Analysis...")
         refined_issues = run_critic_agent(code, merged_issues, api_key)
@@ -165,6 +165,7 @@ class EnhancedControlAgent:
         return {
             'quality_results': quality_results,
             'quality_score': quality_score,
+            'security_results': security_results,
             'static_results': static_results,
             'merged_issues': merged_issues,
             'refined_issues': refined_issues,
