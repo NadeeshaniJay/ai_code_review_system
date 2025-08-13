@@ -207,7 +207,7 @@ def main():
         "max_high_severity_issues": 0,
         "max_iterations": 5,
         "context": context,
-        "optimization_applied": False
+        "optimization_applied": False,
         "best_issues": merged_issues,
         "issue_count": len(merged_issues),
         "issues_fixed": 0,
