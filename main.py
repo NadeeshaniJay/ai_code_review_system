@@ -165,8 +165,12 @@ def main():
     code = load_file(code_path)
     project_dir = os.path.dirname(code_path) or "."
     context = analyze_project_context(project_dir)
+    code = load_file(code_path)
+    project_dir = os.path.dirname(code_path) or "."
+    context = analyze_project_context(project_dir)
 
     print("\n🔍 Phase 1: Running Initial Analysis...")
+    quality_results = run_quality_agent(code, api_key, context)
     quality_results = run_quality_agent(code, api_key, context)
     score = quality_results.get("score", 0)
 
@@ -204,10 +208,25 @@ def main():
         "max_iterations": 5,
         "context": context,
         "optimization_applied": False
+        "best_issues": merged_issues,
+        "issue_count": len(merged_issues),
+        "issues_fixed": 0,
+        "feedback": [],
+        "min_score_threshold": 95.0,
+        "max_high_severity_issues": 0,
+        "max_iterations": 5,
+        "context": context,
+        "optimization_applied": False
     }
 
     graph = build_langgraph_loop()
     final = graph.invoke(state)
+    final_report = format_iteration_summary(final)
+    print(final_report)
+    print("\n📚 Session Summary:")
+    from memory.session_memory import show_session_summary
+    show_session_summary()
+
     final_report = format_iteration_summary(final)
     print(final_report)
     print("\n📚 Session Summary:")

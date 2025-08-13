@@ -161,6 +161,38 @@ def compare_issues(quality_issues: Dict[str, Any], security_issues: Dict[str, An
             merged_issue = comparator.merge_similar_issues(ai_issue, best_match)
             merged.append(merged_issue)
             matched_static_indices.add(best_match_idx)
+        processed_issue = {
+            "line": issue.get("line", 0),
+            "description": issue.get("issue", ""),
+            "suggestion": issue.get("suggestion", ""),
+            "source": "Static",
+            "severity": issue.get("severity", "medium"),
+            "confidence": issue.get("confidence", 0.8),
+            "category": _categorize_issue(issue.get("issue", ""))
+        }
+        processed_static_issues.append(processed_issue)
+
+    # Find matches between AI and static issues
+    matched_static_indices = set()
+
+    for ai_issue in processed_ai_issues:
+        best_match = None
+        best_match_idx = -1
+
+        for idx, static_issue in enumerate(processed_static_issues):
+            if idx in matched_static_indices:
+                continue
+
+            if comparator.are_issues_similar(ai_issue, static_issue):
+                best_match = static_issue
+                best_match_idx = idx
+                break
+
+        if best_match:
+            # Merge the issues
+            merged_issue = comparator.merge_similar_issues(ai_issue, best_match)
+            merged.append(merged_issue)
+            matched_static_indices.add(best_match_idx)
         else:
             # Add AI issue as standalone
             merged.append(ai_issue)
@@ -190,6 +222,26 @@ def compare_issues(quality_issues: Dict[str, Any], security_issues: Dict[str, An
 
     return merged
 
+
+def _categorize_issue(description: str) -> str:
+    """Categorize issue based on description keywords."""
+    desc_lower = description.lower()
+
+    security_keywords = ["security", "vulnerability", "injection", "xss", "csrf", "hardcode"]
+    performance_keywords = ["performance", "slow", "inefficient", "loop", "complexity"]
+    style_keywords = ["style", "formatting", "convention", "naming"]
+    bug_keywords = ["bug", "error", "exception", "null", "undefined"]
+
+    if any(keyword in desc_lower for keyword in security_keywords):
+        return "security"
+    elif any(keyword in desc_lower for keyword in performance_keywords):
+        return "performance"
+    elif any(keyword in desc_lower for keyword in style_keywords):
+        return "style"
+    elif any(keyword in desc_lower for keyword in bug_keywords):
+        return "bug"
+    else:
+        return "general"
 
 def _categorize_issue(description: str) -> str:
     """Categorize issue based on description keywords."""
